@@ -2,6 +2,44 @@
 
 module DiscourseAiPersistentMemory
   module ToolRunnerExtension
+    MEMORY_JS = <<~JS
+      const memory = {
+        set: function(key, value) {
+          const result = _memory_set(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
+          if (result && result.error) throw new Error(result.error);
+          return result;
+        },
+        get: function(key) {
+          const result = _memory_get(key);
+          if (!result) return null;
+          try { return JSON.parse(result); } catch { return result; }
+        },
+        list: function() { return _memory_list(); },
+        delete: function(key) {
+          const result = _memory_delete(key);
+          if (result && result.error) throw new Error(result.error);
+          return result;
+        }
+      };
+    JS
+
+    def mini_racer_context
+      @mini_racer_context ||=
+        begin
+          ctx = super
+          attach_memory(ctx)
+          ctx
+        end
+    end
+
+    def framework_script
+      original_script = super
+      # Insert memory JS before the context line
+      original_script.sub("const context =", "#{MEMORY_JS}\n        const context =")
+    end
+
+    private
+
     def attach_memory(mini_racer_context)
       mini_racer_context.attach(
         "_memory_set",
@@ -61,26 +99,5 @@ module DiscourseAiPersistentMemory
         end,
       )
     end
-
-    MEMORY_JS = <<~JS
-      const memory = {
-        set: function(key, value) {
-          const result = _memory_set(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
-          if (result && result.error) throw new Error(result.error);
-          return result;
-        },
-        get: function(key) {
-          const result = _memory_get(key);
-          if (!result) return null;
-          try { return JSON.parse(result); } catch { return result; }
-        },
-        list: function() { return _memory_list(); },
-        delete: function(key) {
-          const result = _memory_delete(key);
-          if (result && result.error) throw new Error(result.error);
-          return result;
-        }
-      };
-    JS
   end
 end

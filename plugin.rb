@@ -2,9 +2,9 @@
 
 # name: discourse-ai-persistent-memory
 # about: Allows users to manage persistent AI memory key/value pairs in preferences
-# version: 0.1.0
+# version: 0.2.0
 # authors: crawf
-# url: https://github.com/discourse/discourse
+# url: https://github.com/BrianCraword/discourse-ai-persistent-memory
 
 enabled_site_setting :ai_persistent_memory_enabled
 
@@ -27,29 +27,5 @@ after_initialize do
   # Patch ToolRunner to add memory functions if discourse-ai is loaded
   if defined?(DiscourseAi::Personas::ToolRunner)
     DiscourseAi::Personas::ToolRunner.prepend(DiscourseAiPersistentMemory::ToolRunnerExtension)
-
-    # Patch the mini_racer_context method to include attach_memory call
-    DiscourseAi::Personas::ToolRunner.class_eval do
-      alias_method :original_mini_racer_context, :mini_racer_context
-
-      def mini_racer_context
-        @mini_racer_context ||=
-          begin
-            ctx = original_mini_racer_context
-            # attach_memory is now provided by our extension via prepend
-            ctx
-          end
-      end
-
-      # Patch framework_script to include memory JS object
-      alias_method :original_framework_script, :framework_script
-
-      def framework_script
-        original_script = original_framework_script
-        memory_js = DiscourseAiPersistentMemory::ToolRunnerExtension::MEMORY_JS
-        # Insert memory JS before the context line
-        original_script.sub("const context =", "#{memory_js}\n        const context =")
-      end
-    end
   end
 end
