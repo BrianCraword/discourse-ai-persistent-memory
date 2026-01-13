@@ -1,0 +1,4 @@
+plugins:
+  ai_persistent_memory_enabled:
+    default: true
+    client: true
